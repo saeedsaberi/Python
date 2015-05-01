@@ -48,6 +48,49 @@ def read_dat(file,*spl):
     f.close()
     return  a
 
+def readall_coverage(dir,mark,libs):
+
+    ext='.coverage'
+    try:
+        direct=os.popen('ls '+dir +'/*'+mark+'*'+ext)
+    except:
+         direct=os.popen('ls '+dir +'/'+mark+'*'+ext)
+    data=[]
+    files=[]
+    for fl in direct.readlines():
+			#print fl
+			tmpdata=read.read_dat(fl[:-1],'\t')
+			data.append(tmpdata)
+			files.append(fl.split('/')[-1][0:-len('.coverage')-1])
+    genes=[]
+    for i in data[0]:
+        genes.append(i[3])
+
+    mat=[]
+    #\genes=np.array(genes)
+    for i in data:
+        mat.append(np.zeros((len(genes)),np.float))
+        for j in i:
+            try:
+                mat[-1][genes.index(j[3])]+=np.float(j[4])
+                #print j[2]
+            except:
+                pass
+    mat=np.array(mat)
+    print 'ending'
+    libs=read.read_dat(libs,'\t')
+    for i in libs:
+        for j in range(len(files)):
+          if i[-1] in files[j]:
+              files[j]=i[0]
+          if 'hg19v69_genes.TSS_2000.pc.' in files[j]:
+              ind=files[j].index('hg19v69_genes.TSS_2000.pc.')
+              files[j]=files[j][ind]+files[j][ind+len('hg19v69_genes.TSS_2000.pc.'):]
+
+
+              #break
+
+    return  files,mat,genes
 
 def read_dir(dir,mark,loc,ext,*spl):
 	
@@ -80,6 +123,7 @@ def read_dir(dir,mark,loc,ext,*spl):
 			files.append(fl[Ai:Aend])
 
 	return  files, data
+
 
 
 

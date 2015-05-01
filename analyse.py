@@ -354,23 +354,26 @@ def all_corr(vec):
 
    ln=len(vec[0])
    print ln, ln
-   #cor_mat=np.zeros((ln,ln),np.float)
-   #dist=np.zeros((ln,ln),np.float)
-   #st=np.max(vec,axis=0)
+   print len(vec), len(vec[0])
    vec=np.array(vec)
-   norm=vec*1.
 
+
+   norm=[]
    for ii in xrange(ln):
-     norm[:,ii]=ss.zscore(vec[:,ii])
+      norm.append(ss.zscore(vec[:,ii]))
+   norm=analyse.data2arr(norm)
    print 'spearman ...'
-   cor_mat=ss.spearmanr(norm)[0]
+   #cor_mat=ss.spearmanr(norm)[0]
+   cor_mat=[]
+   for ii in range(len(vec)):
+      cor_mat.append([])
+      for jj in xrange(len(vec)):
+         tmp=ss.pearsonr(vec[ii],vec[jj])
+         cor_mat[-1].append(tmp[0])
+        #print len(vec[:,ii])
+   cor_mat=np.array(cor_mat)
+   ####
    dist=1-cor_mat
-      #for jj in xrange(ln): 
-      #  tmp=ss.spearmanr(vec[:,ii],vec[:,jj])
-      #  cor_mat[ii,jj]=tmp[0]
-      #  dist[ii,jj]=1.-tmp[0]
-      #  #print len(vec[:,ii])
-
    distance=[]
    for i in xrange(len(dist)):
       distance=distance+list(dist[i][i+1:])
@@ -383,9 +386,7 @@ def heatmap_cor( x, vec, minval, maxval ):
 
 
 # Compute and plots heatmap & dendrogram.
-  vec=np.array(vec)
-
-  norm,corr,dist=analyse.all_corr(vec.T)
+  norm,corr,dist=analyse.all_corr(vec)
 
   print 'statrting to cluster...'
   fig = plt.figure(figsize=(8,8))
@@ -400,8 +401,8 @@ def heatmap_cor( x, vec, minval, maxval ):
   plt.yticks(fontsize=8)
   #ax1.set_yticks([])
   ticks = ax1.get_xticks() #/ max(ax1.get_xticks())
-  
-  ticks = ['%.1f' % a for a in ticks]
+  ticks=map(float,ticks)
+  ticks = ['%.2f' % (a/2.) for a in ticks]
   ax1.set_xticklabels(ticks)
   
 # Plot distance matrix.
@@ -420,7 +421,7 @@ def heatmap_cor( x, vec, minval, maxval ):
   D = D[:,idx2]
 
   print 'heatmap' 
-  im = axmatrix.matshow(D, aspect='auto', origin='lower',vmin=minval,vmax=maxval, cmap=plt.cm.RdBu)
+  im = axmatrix.pcolor(D,  cmap=plt.cm.RdYlBu,edgecolor='k',)
   plt.xticks(fontsize=5)
   plt.yticks([])
 
@@ -1311,34 +1312,50 @@ def corr_vec_rpkm(rpkmmat,ensmble,vec,col):
    
    
 
-def calc_benjamini(p_values, num_total_tests):
-    """
-    Calculates the Benjamini-Hochberg correction for multiple hypothesis
-    testing from a list of p-values *sorted in ascending order*.
+def CPG_RPKM(RPKM, CPG, lim):
 
-    See
-    http://en.wikipedia.org/wiki/False_discovery_rate#Independent_tests
-    for more detail on the theory behind the correction.
 
-    **NOTE:** This is a generator, not a function. It will yield values
-    until all calculations have completed.
+  CGI=[]
+  cpg=read.read_dat(CPG,'\t')
+  for i in cpg:
+    CGI.append(i[0])
+  genes=RPKM[0][1:]
+  libs=[]
+  mat=[]
+  for i in RPKM[1:]:
+      mat.append(i[1:])
+      libs.append(i[0])
+  mat=analyse.data2arr(mat)
+  genes=np.array(genes)
+  allave=[]
+  cgiave=[]
+  print len(mat)
+  for i in range(len(mat)):
+      gntmp=genes[mat[i,:]>lim]
 
-    :Parameters:
-    - `p_values`: a list or iterable of p-values sorted in ascending
-      order
-    - `num_total_tests`: the total number of tests (p-values)
+      tmp=mat[i,:][mat[i,:]>lim]
+      allave.append(np.mean(tmp))
+      cgirpkm=[]
+      for j in xrange(len(gntmp)):
+          if gntmp[j] in CGI:
+              cgirpkm.append(tmp[j])
+      cgiave.append(np.mean(cgirpkm))
+      print len(gntmp), len(cgirpkm)
+  allave=np.array(allave)
+  cgiave=np.array(cgiave)
+  return allave,cgiave, libs
 
-    """
-    prev_bh_value = 0
-    for i, p_value in enumerate(p_values):
-        bh_value = p_value * num_total_tests / (i + 1)
-        # Sometimes this correction can give values greater than 1,
-        # so we set those values at 1
-        bh_value = min(bh_value, 1)
 
-        # To preserve monotonicity in the values, we take the
-        # maximum of the previous value or this one, so that we
-        # don't yield a value less than the previous.
-        bh_value = max(bh_value, prev_bh_value)
-        prev_bh_value = bh_value
-        yield bh_value
+
+
+
+
+
+
+
+
+
+
+
+
+
